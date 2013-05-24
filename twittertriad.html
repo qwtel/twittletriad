@@ -1,0 +1,127 @@
+<head>
+  <title>Tweet Triad</title>
+</head>
+
+<body>
+	{{> header}}
+	{{#if currentUser}}
+		{{#if equals "page" "game"}}
+			{{> game}}
+		{{/if}}
+		{{#if equals "page" "deck"}}
+			{{> deck}}
+		{{/if}}
+	{{/if}}
+</body>
+
+<template name="header">
+	<div class="navbar navbar-fixed-top">
+		<div class="navbar-inner">
+			{{#if currentUser}}
+				<ul class="nav">
+					<li><a id="game" href="#">Game</a></li>
+					<li><a id="deck" href="#">Deck</a></li>
+				</ul>
+			{{/if}}
+			<div class="pull-right">
+				{{loginButtons}}
+			</div>
+		</div>
+	</div>
+</template>
+
+<template name="hand">
+	{{#each cards}}
+		{{> card}}
+	{{/each}}
+</template>
+
+<template name="game">
+	<div class="row-fluid">
+		<div class="span12">
+			<button class="btn" id="new-game">New Game</button>
+		</div>
+	</div>
+
+	{{#with game}}
+		<div class="row-fluid">
+			<div class="span2">
+				<div id="hand-1" class="hand">
+					{{#with player1.hand}}
+						{{> hand}}
+					{{/with}}
+				</div>
+			</div>
+
+			<div class="span8">
+				<center>
+					{{> playground}}
+				</center>
+			</div>
+
+			<div class="span2">
+				<div id="hand-2" class="hand">
+					{{#with player2.hand}}
+						{{> hand}}
+					{{/with}}
+				</div>
+			</div>
+		</div>
+	{{/with}}
+</template>
+
+<template name="playground">
+	<table id="playground" class="table table-bordered"> 
+		<tbody> 
+			<tr>
+				<td id="field-1" data-field="1"> {{#with card 0 0}} {{> card}} {{/with}} </td>
+				<td id="field-2" data-field="2"> {{#with card 0 1}} {{> card}} {{/with}} </td>
+				<td id="field-3" data-field="3"> {{#with card 0 2}} {{> card}} {{/with}} </td>
+			</tr>
+			<tr>
+				<td id="field-4" data-field="4"> {{#with card 1 0}} {{> card}} {{/with}} </td>
+				<td id="field-5" data-field="5"> {{#with card 1 1}} {{> card}} {{/with}} </td>
+				<td id="field-6" data-field="6"> {{#with card 1 2}} {{> card}} {{/with}} </td>
+			</tr>
+			<tr>
+				<td id="field-7" data-field="7"> {{#with card 2 0}} {{> card}} {{/with}} </td>
+				<td id="field-8" data-field="8"> {{#with card 2 1}} {{> card}} {{/with}} </td>
+				<td id="field-9" data-field="9"> {{#with card 2 2}} {{> card}} {{/with}} </td>
+			</tr>
+		</tbody> 
+	</table>
+</template>
+
+<template name="deck">
+	<button class="btn" id="load-cards">Load Cards</button>
+	<div class="deck">
+		{{#with mycard}}
+			{{> card}}
+		{{/with}}
+		{{#each cards}}
+			{{> card}}
+		{{/each}}
+	</div>
+</template>
+
+<template name="card">
+	<div id="card-{{_id}}" class="card {{selected}}">
+		<div class="face front" title="{{description}}" style="background-image:url('{{image}}')">
+			{{> cardInner}}
+		</div>
+		<div class="face back" title="{{description}}" style="background-image:url('{{image}}')">
+			{{> cardInner}}
+		</div>
+	</div>
+</template>
+
+<template name="cardInner">
+	<h5>{{name}}</h5>
+	{{#if verified}}<img class="verified pull-right" src="/img/twitter_verified_account.png" alt="Verified" title="Verified" />{{/if}}
+	<ol class="ranks">
+		<li title="Followers">{{tenEqualsA ranks.top}}</li>
+		<li title="Friends">{{tenEqualsA ranks.left}}</li>
+		<li title="Tweets">{{tenEqualsA ranks.right}}</li>
+		<li title="Listed">{{tenEqualsA ranks.bottom}}</li>
+	</ol>
+</template>
