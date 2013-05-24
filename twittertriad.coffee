@@ -1,47 +1,78 @@
 root = exports ? this
 
+SIZE = 3
+
 root.Cards = new Meteor.Collection "cards"
 root.Games = new Meteor.Collection "games"
 
-SIZE = 3
+class Router extends Backbone.Router
+  routes:
+    "": "game"
+    "deck": "deck"
+    "game/:id": "game"
+    "game": "game"
+
+  game: (id) ->
+    console.log id
+    Session.set "page", "game"
+    if id?
+      Session.set "game", id
+
+  deck: ->
+    Session.set "page", "deck"
+
+Router = new Router
 
 if Meteor.isClient
   Meteor.startup ->
-    Session.set "page", "game"
+    Backbone.history.start pushState: true
+
     Meteor.subscribe "cards"
     Meteor.subscribe "games"
 
-  Handlebars.registerHelper 'equals', (name, value) ->
+  Handlebars.registerHelper "equals", (name, value) ->
     Session.equals name, value
 
   Template.header.events
-    "click #game": (e) ->
-      Session.set "page", "game"
-
-    "click #deck": (e) ->
-      Session.set "page", "deck"
+    'click a[href^="/"]': (e) ->
+      if e.which is 1 and not (e.ctrlKey or e.metaKey)
+        e.preventDefault()
+        $t = $(e.target).closest 'a[href^="/"]'
+        href = $t.attr "href"
+        if href then Router.navigate href, true
 
   Template.deck.events
     "click #load-cards": (e) ->
       Meteor.call "fetch"
 
-  Template.deck.mycard = ->
-    Cards.findOne twitterId: Meteor.user().services.twitter.id
-
   Template.deck.cards = ->
     user = Meteor.user()
     Cards.find 
-      twitterId: $ne: user.services.twitter.id
       owner: user._id
+    ,
+      sort: rank: -1
 
   Template.game.events
     "click #new-game": (e) ->
       Meteor.call "newGame", (error, res) ->
-        Session.set "game", res
+        Router.navigate "/game/#{res}", true
+
+    "click #join-game": (e) ->
+      id = Session.get "game"
+      Meteor.call "joinGame", id, (error, res) ->
+        console.log error, res
+        #Router.navigate "/game/#{res}", true
 
   Template.game.game = ->
     id = Session.get "game"
     if id? then Games.findOne id
+
+  Template.game.notMyGame = ->
+    id = Session.get "game"
+    if id? 
+      game = Games.findOne id
+      if game?
+        not _.contains game.players, Meteor.userId()
 
   Template.cardInner.tenEqualsA = (num) ->
     if num is 10 then 'A' else num
@@ -62,6 +93,9 @@ if Meteor.isClient
   Template.hand.preserve
     ".card": (node) -> return node.id
 
+  Template.card.preserve
+    ".card": (node) -> return node.id
+
   Template.playground.preserve
     ".card": (node) -> return node.id
 
@@ -69,7 +103,13 @@ if Meteor.isClient
     ".card": (node) -> return node.id
 
   Template.hand.cards = -> 
-    Cards.find _id: $in: this
+    cards = Cards.find(_id: $in: this).fetch()
+
+    zIndex = 1
+    for card in cards
+      card.zIndex = zIndex++
+
+    return cards
 
   Template.playground.row = -> 
     res = []
@@ -125,8 +165,8 @@ Meteor.methods
     game = Games.findOne gameId
     if not game? then throw new Meteor.Error 500, "no game"
 
-    if game.gameover then throw new Meteor.Error 500, "game over"
-    if game.whosTurn isnt Meteor.userId() and game.whosTurn isnt "com" then throw new Meteor.Error 500, "Not your turn"
+    if game.status isnt "PLAYING" then throw new Meteor.Error 500, "game over"
+    if game.whosTurn isnt Meteor.userId() then throw new Meteor.Error 500, "Not your turn"
     if game.field[row][col] != null then throw new Meteor.Error 500, "field not empty"
     if game.field[row][col] != null then throw new Meteor.Error 500, "field not empty"
 
@@ -187,11 +227,11 @@ Meteor.methods
     # game over?
     colors = _.flatten game.color
     if _.size(_.without colors, null) >= 9
-      game.gameover = true
+      game.status = "GAMEOVER"
 
-      # determine winner
-      points = _.countBy colors, (color) => if color is game.player1.id then game.player1.id else game.player2.id
-      if points[game.player1.id] > points[game.player2.id]
+      # determine winner - BROKEN
+      points = _.countBy colors, (color) => if color is game.player1.id then "p1" else "p2"
+      if points["p1"] > points["p2"]
         game.winner = game.player1.id 
       else 
         game.winner = game.player2.id
@@ -229,7 +269,7 @@ Meteor.methods
   "fetch": ->
     if Meteor.isServer
       NUM_CARDS = 40
-      Cards.remove {}
+      #Cards.remove {}
       res = twitter.get "friends/ids.json", 
         cursor: -1
 
@@ -284,55 +324,73 @@ Meteor.methods
 
       Meteor.call "update"
 
+  "joinGame": (gameId) ->
+    if Meteor.isServer
+      if not gameId? and not _.isString gameId then throw new Meteor.Error 500, "no game"
+      game = Games.findOne gameId
+      if not game? then throw new Meteor.Error 500, "no game"
+
+      userId = Meteor.userId()
+      game.players.push userId
+      game.player2.id = userId
+      game.player2.hand = randomHand 5
+      game.whosTurn = Random.choice game.players
+      game.status = "PLAYING"
+
+      # update game
+      Games.update game._id, game
+
   "newGame": ->
     if Meteor.isServer
 
-      # helper function to get a random hand of n
-      randomHand = (n) ->
-
-        # helper function to get a random card
-        randomCard = ->
-          rand = Random.fraction()
-
-          result = Cards.findOne 
-            owner: Meteor.userId()
-            random: $gte: rand
-          ,
-            sort: random: 1
-
-          unless result?
-            result = Cards.findOne
-              owner: Meteor.userId()
-              random: $lte: rand
-            ,
-              sort: random: 1
-
-          return result._id
-
-        if Cards.find(owner: Meteor.userId()).count() < n
-          throw new Meteor.Error 500, "not enough cards"
-
-        hand = []
-        while _.size(hand) < n
-          card = randomCard()
-          hand.push card
-          hand = _.uniq hand
-
-        return hand
-
-      players = [Meteor.userId(), "com"]
+      players = [Meteor.userId()]
       id = Games.insert
+        status: "WAITING"
         players: players
         player1:
           id: players[0]
-          hand: randomHand(6)
+          hand: randomHand 5
         player2:
-          id: players[1]
-          hand: randomHand(6)
-        whosTurn: Random.choice players
+          id: null
+          hand: []
+        whosTurn: null
         field: [[null, null, null, null], [null, null, null, null], [null, null, null, null]]
         color: [[null, null, null, null], [null, null, null, null], [null, null, null, null]]
-        gameover: false
         winner: null
+        private: true
 
       return id
+    
+# helper function to get a random hand of n
+randomHand = (n) ->
+
+  # helper function to get a random card
+  randomCard = ->
+    rand = Random.fraction()
+
+    result = Cards.findOne 
+      owner: Meteor.userId()
+      random: $gte: rand
+    ,
+      sort: random: 1
+
+    unless result?
+      result = Cards.findOne
+        owner: Meteor.userId()
+        random: $lte: rand
+      ,
+        sort: random: 1
+
+    return result._id
+
+  if Cards.find(owner: Meteor.userId()).count() < n
+    throw new Meteor.Error 500, "not enough cards"
+
+  hand = []
+  while _.size(hand) < n
+    card = randomCard()
+    hand.push card
+    hand = _.uniq hand
+
+  return hand
+
