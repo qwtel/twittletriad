@@ -70,25 +70,43 @@
 </template>
 
 <template name="playground">
-  <table id="playground" class="table table-bordered"> 
+  <div id="playground">
+  <table class="table table-bordered"> 
     <tbody> 
       <tr>
-        <td id="field-1" data-field="1"> {{#with card 0 0}} {{> card}} {{/with}} </td>
-        <td id="field-2" data-field="2"> {{#with card 0 1}} {{> card}} {{/with}} </td>
-        <td id="field-3" data-field="3"> {{#with card 0 2}} {{> card}} {{/with}} </td>
+        <td id="field-1" data-field="1"></td>
+        <td id="field-2" data-field="2"></td>
+        <td id="field-3" data-field="3"></td>
       </tr>
       <tr>
-        <td id="field-4" data-field="4"> {{#with card 1 0}} {{> card}} {{/with}} </td>
-        <td id="field-5" data-field="5"> {{#with card 1 1}} {{> card}} {{/with}} </td>
-        <td id="field-6" data-field="6"> {{#with card 1 2}} {{> card}} {{/with}} </td>
+        <td id="field-4" data-field="4"></td>
+        <td id="field-5" data-field="5"></td>
+        <td id="field-6" data-field="6"></td>
       </tr>
       <tr>
-        <td id="field-7" data-field="7"> {{#with card 2 0}} {{> card}} {{/with}} </td>
-        <td id="field-8" data-field="8"> {{#with card 2 1}} {{> card}} {{/with}} </td>
-        <td id="field-9" data-field="9"> {{#with card 2 2}} {{> card}} {{/with}} </td>
+        <td id="field-7" data-field="7"></td>
+        <td id="field-8" data-field="8"></td>
+        <td id="field-9" data-field="9"></td>
       </tr>
     </tbody> 
   </table>
+
+  <div class="cards"> 
+    {{#with card 0 0}} {{> card}} {{/with}} 
+    {{#with card 0 1}} {{> card}} {{/with}} 
+    {{#with card 0 2}} {{> card}} {{/with}} 
+                                            
+                                            
+    {{#with card 1 0}} {{> card}} {{/with}} 
+    {{#with card 1 1}} {{> card}} {{/with}} 
+    {{#with card 1 2}} {{> card}} {{/with}} 
+                                            
+                                            
+    {{#with card 2 0}} {{> card}} {{/with}} 
+    {{#with card 2 1}} {{> card}} {{/with}} 
+    {{#with card 2 2}} {{> card}} {{/with}} 
+  </div>
+</div>
 </template>
 
 <template name="deck">
@@ -101,7 +119,7 @@
 </template>
 
 <template name="card">
-  <div id="card-{{_id}}" class="card {{selected}}" style="z-index: {{zIndex}}">
+  <div id="card-{{_id}}" class="card {{selected}}" style="{{style}}">
     <div class="face front" title="{{description}}" style="background-image:url('{{image}}')">
       {{> cardInner}}
     </div>
@@ -126,6 +144,6 @@
     <li title="Followers">{{tenEqualsA ranks.top}}</li>
     <li title="Friends">{{tenEqualsA ranks.left}}</li>
     <li title="Tweets">{{tenEqualsA ranks.right}}</li>
-    <li title="Listed">{{tenEqualsA ranks.bottom}}</li>
+    <li title="Favourites">{{tenEqualsA ranks.bottom}}</li>
   </ol>
 </template>

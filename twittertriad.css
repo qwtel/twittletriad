@@ -10,6 +10,7 @@ body {
 }
 
 #playground {
+  position: relative;
   display: block;
   background: rgba(255,255,255,0.50);
   width: 544px;
@@ -19,6 +20,9 @@ body {
   -moz-perspective: 800px;
   -o-perspective: 800px;
   perspective: 800px;
+}
+
+#playground .cards {
 }
 
 #playground td {
@@ -48,7 +52,6 @@ body {
   width: 180px;
   height: 180px;
   position: relative;
-  margin-top: -80px;
   box-shadow: 2px 2px 10px #555;
 
   -webkit-transform-style: preserve-3d;
@@ -59,6 +62,7 @@ body {
 
 .hand .card {
   cursor: pointer;
+  margin-top: -80px;
 
   -webkit-transition: -webkit-transform 0.1s, margin 0.1s;
   -moz-transition: -moz-transform 0.1s, margin 0.1s;
