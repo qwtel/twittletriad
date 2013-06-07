@@ -5,11 +5,12 @@
 
 insecure
 preserve-inputs
-bootstrap
 coffeescript
 accounts-base
 accounts-ui
 accounts-twitter
 twitter-api
-autopublish
 backbone
+force-ssl
+profile-online
+bootstrap-3

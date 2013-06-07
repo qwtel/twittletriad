@@ -5,7 +5,6 @@ SIZE = 3
 root.Cards = new Meteor.Collection "cards"
 root.ShadowCards = new Meteor.Collection null
 root.Games = new Meteor.Collection "games"
-root.Config = new Meteor.Collection "config"
 
 class Router extends Backbone.Router
   routes:
@@ -29,11 +28,41 @@ if Meteor.isClient
   Meteor.startup ->
     Backbone.history.start pushState: true
 
-    Meteor.subscribe "cards"
-    Meteor.subscribe "games"
+    Meteor.call "online"
+
+    Games.find().observeChanges
+      changed: (id, fields) ->
+        Meteor.subscribe "gamesWithCards", id
+
+    # client: declare collection to hold count object
+    root.Counts = new Meteor.Collection "counts"
+
+    Deps.autorun ->
+      Meteor.subscribe "counts-by-room", ->
+        # client: use the new collection
+        console.log "Current room has " + Counts.findOne("games").count + " messages."
+
+      page = Session.get "page"
+      if page is "deck"
+        Meteor.subscribe "cards"
+      else
+        gameId = Session.get "game"
+        Meteor.subscribe "gamesWithCards", gameId
 
   Handlebars.registerHelper "equals", (name, value) ->
     Session.equals name, value
+
+  _.extend Template.header,
+    game: -> 
+      Session.get "game"
+
+    numPlayersOnline: -> 0
+      #c = Counts.findOne("players")
+      #c?.count
+
+    numActiveGames: -> 0
+      #c = Counts.findOne("games")
+      #c?.count
 
   Template.header.events
     'click a[href^="/"]': (e) ->
@@ -65,19 +94,17 @@ if Meteor.isClient
         console.log error, res
         #Router.navigate "/game/#{res}", true
 
-  Template.game.game = ->
-    id = Session.get "game"
-    if id? then Games.findOne id
+  _.extend Template.game,
+    game: ->
+      id = Session.get "game"
+      if id? then Games.findOne id
 
-  Template.game.notMyGame = ->
-    id = Session.get "game"
-    if id? 
-      game = Games.findOne id
-      if game?
-        not _.contains game.players, Meteor.userId()
-
-  Template.cardInner.tenEqualsA = (num) ->
-    if num is 10 then 'A' else num
+    notMyGame: ->
+      id = Session.get "game"
+      if id? 
+        game = Games.findOne id
+        if game?
+          not _.contains game.players, Meteor.userId()
 
   Template.card.image = ->
     @image.replace "_normal", ""
@@ -96,9 +123,21 @@ if Meteor.isClient
     else
       if Session.equals "selection", @_id then "selected" else ""
 
+  Template.card.hover = ->
+    game = Games.findOne(Session.get("game"))
+    if game.player1.hover is @_id and game.player1.id isnt Meteor.userId()
+      return "hover"
+    if game.player2.hover is @_id and game.player2.id isnt Meteor.userId()
+      return "hover"
+
   Template.card.events
     "click .face": (e) ->
       Session.set "selection", @_id
+
+  Template.deckCard.image = Template.card.image
+
+  Template.cardInner.tenEqualsA = (num) ->
+    if num is 10 then 'A' else num
 
   Template.hand.preserve
     ".card": (node) -> return node.id
@@ -112,24 +151,24 @@ if Meteor.isClient
   Template.deck.preserve
     ".card": (node) -> return node.id
 
+  hover = _.debounce (gameId, cardId) ->
+    Meteor.call "hover", gameId, cardId
+  , 100
+
+  Template.hand.events
+    "mouseover .card": (e) ->
+      gameId = Session.get "game"
+      hover gameId, @_id
+
   Template.hand.cards = -> 
-    cards = Cards.find(_id: $in: this).fetch()
+    cards = Cards.find(_id: $in: @hand).fetch()
 
     zIndex = 1
     for card in cards
+      console.log this
       card.zIndex = zIndex++
 
     return cards
-
-  Template.playground.row = -> 
-    res = []
-    i = 1
-    while i<=SIZE
-      res.push
-        row: i
-      i++
-
-    return res
 
   Template.playground.card = (row, col) -> 
     card = Cards.findOne @field[row][col]
@@ -161,8 +200,57 @@ if Meteor.isServer
     Meteor.publish "cards", ->
       Cards.find owner: @userId
 
-    Meteor.publish "games", ->
-      Games.find players: @userId
+    Meteor.publish "gamesWithCards", (gameId) ->
+      if gameId? 
+        gameCursor = Games.find gameId
+        games = gameCursor.fetch()
+        cardsCursor = Cards.find owner: $in: games[0].players
+        return [gameCursor, cardsCursor]
+
+    # server: publish the current size of a collection
+    Meteor.publish "counts-by-room", ->
+      count = 0
+      pCount = 0
+      initializing = true
+
+      handle = Games.find(status: "PLAYING").observeChanges
+        added: (id) =>
+          count++
+          if not initializing
+            @changed "counts", "games", count: count
+
+        removed: (id) =>
+          count--
+          @changed "counts", "games", count: count
+
+        # don't care about moved or changed
+
+      handle2 = Meteor.users.find("profile.online": true).observeChanges
+        added: (id) =>
+          pCount++
+          if not initializing
+            @changed "counts", "players", count: pCount
+
+        removed: (id) =>
+          pCount--
+          @changed "counts", "players", count: pCount
+
+        # don't care about moved or changed
+
+      # Observe only returns after the initial added callbacks have
+      # run.  Now return an initial value and mark the subscription
+      # as ready.
+      initializing = false
+      @added "counts", "games", count: count
+      @added "counts", "players", count: pCount
+      @ready()
+
+      # Stop observing the cursor when client unsubs.
+      # Stopping a subscription automatically takes
+      # care of sending the client any removed messages.
+      @onStop -> 
+        handle.stop()
+        handle2.stop()
 
     #numberOfCards = Config.findOne("numberOfCards")
     #if not numberOfCards 
@@ -214,9 +302,19 @@ if Meteor.isServer
     observeStat "favourites"
 
 Meteor.methods
+  hover: (gameId, cardId) ->
+    game = Games.findOne gameId
+    if game.player1.id is Meteor.userId() and _.contains game.player1.hand, cardId
+      console.log
+      #Games.update gameId, $set: "player1.hover": cardId
+    else if game.player2.id is Meteor.userId() and _.contains game.player2.hand, cardId
+      console.log
+      #Games.update gameId, $set: "player2.hover": cardId
+
   remove:  ->
     if Meteor.isServer and Meteor.user().services.twitter.id is "137488372" 
-      Cards.remove owner: $ne: "JL2JaSeY7xxfSuun6"
+      Games.remove({})
+      #Cards.remove owner: $ne: "JL2JaSeY7xxfSuun6"
 
   nextMove: (gameId, cardId, row, col) ->
     if not gameId? and not _.isString gameId then throw new Meteor.Error 500, "no game"
@@ -291,12 +389,17 @@ Meteor.methods
     if _.size(_.without colors, null) >= 9
       game.status = "GAMEOVER"
 
-      # determine winner - BROKEN
+      # determine winner
       points = _.countBy colors, (color) => if color is game.player1.id then "p1" else "p2"
+      if _.size(game.player1.hand) is 1 then points["p1"]++
+      if _.size(game.player2.hand) is 1 then points["p2"]++
+
       if points["p1"] > points["p2"]
         game.winner = game.player1.id 
-      else 
+      else if points["p1"] < points["p2"]
         game.winner = game.player2.id
+      else
+        game.winner = null
 
       console.log "#{game._id}: The winner is #{game.winner}!"
 
@@ -366,9 +469,8 @@ Meteor.methods
                 right: false
                 bottom: false
 
-      #Meteor.call "update"
-
   update: ->
+    # only I can invoke cpu intensive ranking of cards
     if Meteor.isServer and Meteor.user().services.twitter.id is "137488372" 
       num = Cards.find().count()
 
@@ -382,16 +484,19 @@ Meteor.methods
 
         i = 0
         cards.forEach (card) ->
-          card.ranks[rank] = Math.round i/num*10
+          set = {}
+          set["ranks."+rank] = Math.round i/num*10
+          set["ranked."+rank] = true
+
           if i%10 is 0 then console.log i
           i++
 
-          card.ranked[rank] = true
+          #Cards.update card._id, card
 
           if not ShadowCards.findOne card._id
             ShadowCards.insert card
-          else
-            ShadowCards.update card._id, card
+
+          ShadowCards.update card._id, $set: set
 
       rankBasedOn "followers"
       rankBasedOn "friends"
@@ -415,8 +520,9 @@ Meteor.methods
 
       userId = Meteor.userId()
       game.players.push userId
+      game.player1.hand = randomHand game.player1.id, 5
       game.player2.id = userId
-      game.player2.hand = randomHand 5
+      game.player2.hand = randomHand game.player2.id, 5
       game.whosTurn = Random.choice game.players
       game.status = "PLAYING"
 
@@ -429,13 +535,18 @@ Meteor.methods
       players = [Meteor.userId()]
       id = Games.insert
         status: "WAITING"
+        date: (new Date()).getTime()
         players: players
         player1:
           id: players[0]
-          hand: randomHand 5
+          hand: []
+          hover: null
+          selection: null
         player2:
           id: null
           hand: []
+          hover: null
+          selection: null
         whosTurn: null
         field: [[null, null, null, null], [null, null, null, null], [null, null, null, null]]
         color: [[null, null, null, null], [null, null, null, null], [null, null, null, null]]
@@ -445,28 +556,28 @@ Meteor.methods
       return id
     
 # helper function to get a random hand of n
-randomHand = (n) ->
+randomHand = (userId, n) ->
 
   # helper function to get a random card
   randomCard = ->
     rand = Random.fraction()
 
     result = Cards.findOne 
-      owner: Meteor.userId()
+      owner: userId
       random: $gte: rand
     ,
       sort: random: 1
 
     unless result?
       result = Cards.findOne
-        owner: Meteor.userId()
+        owner: userId
         random: $lte: rand
       ,
         sort: random: 1
 
     return result._id
 
-  if Cards.find(owner: Meteor.userId()).count() < n
+  if Cards.find(owner: userId).count() < n
     throw new Meteor.Error 500, "not enough cards"
 
   hand = []
@@ -476,4 +587,3 @@ randomHand = (n) ->
     hand = _.uniq hand
 
   return hand
-

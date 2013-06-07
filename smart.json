@@ -1,5 +1,8 @@
 {
   "packages": {
-    "twitter-api": {}
+    "twitter-api": {},
+    "profile-online": {},
+    "bootstrap-3": {},
+    "accounts-ui-bootstrap-3": {}
   }
 }

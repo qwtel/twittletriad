@@ -19,8 +19,13 @@
     <div class="navbar-inner">
       {{#if currentUser}}
         <ul class="nav">
-          <li><a href="/game">Game</a></li>
+          {{#if game}}
+            <li><a href="/game/{{game}}">Game</a></li>
+          {{else}}
+            <li><a href="/game">Game</a></li>
+          {{/if}}
           <li><a href="/deck">Deck</a></li>
+          <li><a>There are currently {{numPlayersOnline}} players online, playing {{numActiveGames}} games.</a></li>
         </ul>
       {{/if}}
       <div class="pull-right">
@@ -37,30 +42,30 @@
 </template>
 
 <template name="game">
-  <div class="row-fluid">
-    <div class="span12">
+  <div class="row">
+    <div class="col col-lg-12">
       <button class="btn" id="new-game">New Game</button>
-      {{#if notMyGame}}<button class="btn" id="join-game">Join Game</button>{{/if}}
+      {{#if notMyGame}}<button class="btn btn-primary" id="join-game">Join Game</button>{{/if}}
     </div>
   </div>
 
   {{#with game}}
-    <div class="row-fluid">
-      <div class="span3">
+    <div class="row">
+      <div class="col col-lg-3">
         <div id="hand-1" class="hand">
-          {{#with player1.hand}}
+          {{#with player1}}
             {{> hand}}
           {{/with}}
         </div>
       </div>
 
-      <div class="span6">
+      <div class="col col-lg-6">
         {{> playground}}
       </div>
 
-      <div class="span3">
+      <div class="col col-lg-3">
         <div id="hand-2" class="hand">
-          {{#with player2.hand}}
+          {{#with player2}}
             {{> hand}}
           {{/with}}
         </div>
@@ -110,20 +115,24 @@
 </template>
 
 <template name="deck">
-  <button class="btn" id="load-cards">Load Cards</button>
-  <div class="deck">
-    {{#each cards}}
-      {{> deckCard}}
-    {{/each}}
+  <div class="row">
+    <div class="col col-lg-12">
+      <button class="btn" id="load-cards">Load Cards</button>
+      <div class="deck">
+        {{#each cards}}
+          {{> deckCard}}
+        {{/each}}
+      </div>
+    </div>
   </div>
 </template>
 
 <template name="card">
-  <div id="card-{{_id}}" class="card {{selected}}" style="{{style}}">
-    <div class="face front" title="{{description}}" style="background-image:url('{{image}}')">
+  <div id="card-{{_id}}" class="card {{selected}} {{hover}}" style="{{style}}">
+    <div class="face front" title="{{name}}" style="background-image:url('{{image}}')">
       {{> cardInner}}
     </div>
-    <div class="face back" title="{{description}}" style="background-image:url('{{image}}')">
+    <div class="face back" title="{{name}}" style="background-image:url('{{image}}')">
       {{> cardInner}}
     </div>
   </div>
@@ -131,14 +140,14 @@
 
 <template name="deckCard">
   <div id="card-{{_id}}" class="card">
-    <div class="face front" title="{{description}}" style="background-image:url('{{image}}')">
+    <div class="face front" title="{{name}}" style="background-image:url('{{image}}')">
       {{> cardInner}}
     </div>
   </div>
 </template>
 
 <template name="cardInner">
-  <h5>{{name}}</h5>
+  <h5>&#64;{{screen_name}}</h5>
   {{#if verified}}<img class="verified pull-right" src="/img/twitter_verified_account.png" alt="Verified" title="Verified" />{{/if}}
   <ol class="ranks">
     <li title="Followers">{{tenEqualsA ranks.top}}</li>
