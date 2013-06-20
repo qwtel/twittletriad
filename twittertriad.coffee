@@ -28,20 +28,13 @@ if Meteor.isClient
   Meteor.startup ->
     Backbone.history.start pushState: true
 
-    Meteor.call "online"
+    Meteor.call "fetch"
 
     Games.find().observeChanges
       changed: (id, fields) ->
         Meteor.subscribe "gamesWithCards", id
 
-    # client: declare collection to hold count object
-    root.Counts = new Meteor.Collection "counts"
-
     Deps.autorun ->
-      Meteor.subscribe "counts-by-room", ->
-        # client: use the new collection
-        console.log "Current room has " + Counts.findOne("games").count + " messages."
-
       page = Session.get "page"
       if page is "deck"
         Meteor.subscribe "cards"
@@ -56,14 +49,6 @@ if Meteor.isClient
     game: -> 
       Session.get "game"
 
-    numPlayersOnline: -> 0
-      #c = Counts.findOne("players")
-      #c?.count
-
-    numActiveGames: -> 0
-      #c = Counts.findOne("games")
-      #c?.count
-
   Template.header.events
     'click a[href^="/"]': (e) ->
       if e.which is 1 and not (e.ctrlKey or e.metaKey)
@@ -71,10 +56,6 @@ if Meteor.isClient
         $t = $(e.target).closest 'a[href^="/"]'
         href = $t.attr "href"
         if href then Router.navigate href, true
-
-  Template.deck.events
-    "click #load-cards": (e) ->
-      Meteor.call "fetch"
 
   Template.deck.cards = ->
     user = Meteor.user()
@@ -123,12 +104,12 @@ if Meteor.isClient
     else
       if Session.equals "selection", @_id then "selected" else ""
 
-  Template.card.hover = ->
-    game = Games.findOne(Session.get("game"))
-    if game.player1.hover is @_id and game.player1.id isnt Meteor.userId()
-      return "hover"
-    if game.player2.hover is @_id and game.player2.id isnt Meteor.userId()
-      return "hover"
+  #Template.card.hover = ->
+  #  game = Games.findOne(Session.get("game"))
+  #  if game.player1.hover is @_id and game.player1.id isnt Meteor.userId()
+  #    return "hover"
+  #  if game.player2.hover is @_id and game.player2.id isnt Meteor.userId()
+  #    return "hover"
 
   Template.card.events
     "click .face": (e) ->
@@ -151,14 +132,14 @@ if Meteor.isClient
   Template.deck.preserve
     ".card": (node) -> return node.id
 
-  hover = _.debounce (gameId, cardId) ->
-    Meteor.call "hover", gameId, cardId
-  , 100
+  #hover = _.debounce (gameId, cardId) ->
+  #  Meteor.call "hover", gameId, cardId
+  #, 100
 
-  Template.hand.events
-    "mouseover .card": (e) ->
-      gameId = Session.get "game"
-      hover gameId, @_id
+  #Template.hand.events
+  #  "mouseover .card": (e) ->
+  #    gameId = Session.get "game"
+  #    hover gameId, @_id
 
   Template.hand.cards = -> 
     cards = Cards.find(_id: $in: @hand).fetch()
@@ -207,63 +188,6 @@ if Meteor.isServer
         cardsCursor = Cards.find owner: $in: games[0].players
         return [gameCursor, cardsCursor]
 
-    # server: publish the current size of a collection
-    Meteor.publish "counts-by-room", ->
-      count = 0
-      pCount = 0
-      initializing = true
-
-      handle = Games.find(status: "PLAYING").observeChanges
-        added: (id) =>
-          count++
-          if not initializing
-            @changed "counts", "games", count: count
-
-        removed: (id) =>
-          count--
-          @changed "counts", "games", count: count
-
-        # don't care about moved or changed
-
-      handle2 = Meteor.users.find("profile.online": true).observeChanges
-        added: (id) =>
-          pCount++
-          if not initializing
-            @changed "counts", "players", count: pCount
-
-        removed: (id) =>
-          pCount--
-          @changed "counts", "players", count: pCount
-
-        # don't care about moved or changed
-
-      # Observe only returns after the initial added callbacks have
-      # run.  Now return an initial value and mark the subscription
-      # as ready.
-      initializing = false
-      @added "counts", "games", count: count
-      @added "counts", "players", count: pCount
-      @ready()
-
-      # Stop observing the cursor when client unsubs.
-      # Stopping a subscription automatically takes
-      # care of sending the client any removed messages.
-      @onStop -> 
-        handle.stop()
-        handle2.stop()
-
-    #numberOfCards = Config.findOne("numberOfCards")
-    #if not numberOfCards 
-    #  Config.insert 
-    #    _id: "numberOfCards"
-    #    value: 0
-
-    #Config.update "numberOfCards", value: 0
-
-    #Cards.find().observe
-    #  "added": (card) -> 
-    #    Config.update "numberOfCards", $inc: value: 1
-
     observeStat = (stat) ->
       rank = statMap[stat]
 
@@ -302,19 +226,19 @@ if Meteor.isServer
     observeStat "favourites"
 
 Meteor.methods
-  hover: (gameId, cardId) ->
-    game = Games.findOne gameId
-    if game.player1.id is Meteor.userId() and _.contains game.player1.hand, cardId
-      console.log
-      #Games.update gameId, $set: "player1.hover": cardId
-    else if game.player2.id is Meteor.userId() and _.contains game.player2.hand, cardId
-      console.log
-      #Games.update gameId, $set: "player2.hover": cardId
+  #hover: (gameId, cardId) ->
+  #  game = Games.findOne gameId
+  #  if game.player1.id is Meteor.userId() and _.contains game.player1.hand, cardId
+  #    console.log
+  #    #Games.update gameId, $set: "player1.hover": cardId
+  #  else if game.player2.id is Meteor.userId() and _.contains game.player2.hand, cardId
+  #    console.log
+  #    #Games.update gameId, $set: "player2.hover": cardId
 
   remove:  ->
     if Meteor.isServer and Meteor.user().services.twitter.id is "137488372" 
       Games.remove({})
-      #Cards.remove owner: $ne: "JL2JaSeY7xxfSuun6"
+      Cards.remove({})#owner: $ne: "JL2JaSeY7xxfSuun6"
 
   nextMove: (gameId, cardId, row, col) ->
     if not gameId? and not _.isString gameId then throw new Meteor.Error 500, "no game"
@@ -437,11 +361,17 @@ Meteor.methods
         s = _.first(ids, 100)
         ids = _.rest(ids, 100)
 
+        userId = Meteor.userId()
+
         for user in users.data
-          unless Cards.findOne(twitterId: user.id.toString())?
+          exists = Cards.findOne 
+            owner: userId
+            twitterId: user.id.toString()
+
+          unless exists?
             Cards.insert 
               twitterId: user.id.toString()
-              owner: Meteor.userId()
+              owner: userId
               name: user.name
               screen_name: user.screen_name
               description: user.description
@@ -468,6 +398,23 @@ Meteor.methods
                 left: false
                 right: false
                 bottom: false
+          else
+            console.log 'update'
+            Cards.update exists._id,
+              $set:
+                name: user.name
+                screen_name: user.screen_name
+                description: user.description
+                image: user.profile_image_url_https
+                banner: user.profile_banner_url
+                background: user.profile_background_image_url_https
+                verified: user.verified
+                stats:
+                  followers: user.followers_count
+                  friends: user.friends_count
+                  statuses: user.statuses_count
+                  listed: user.listed_count
+                  favourites: user.favourites_count
 
   update: ->
     # only I can invoke cpu intensive ranking of cards
@@ -540,12 +487,10 @@ Meteor.methods
         player1:
           id: players[0]
           hand: []
-          hover: null
           selection: null
         player2:
           id: null
           hand: []
-          hover: null
           selection: null
         whosTurn: null
         field: [[null, null, null, null], [null, null, null, null], [null, null, null, null]]
