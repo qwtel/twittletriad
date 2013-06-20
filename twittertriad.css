@@ -10,9 +10,9 @@ body {
 }
 
 #playground {
+  margin: auto;
   position: relative;
   display: block;
-  background: rgba(255,255,255,0.50);
   width: 544px;
   height: 544px;
 
@@ -32,6 +32,7 @@ body {
   padding: 0;
   height: 180px;
   width: 180px;
+  background: rgba(255,255,255,0.50);
 }
 
 #playground td .card {
@@ -41,7 +42,8 @@ body {
 .hand {
   list-style: none;
   position: relative;
-
+  margin: auto;
+  width: 215px;
   -webkit-perspective: 800px;
   -moz-perspective: 800px;
   -o-perspective: 800px;
