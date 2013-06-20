@@ -18,6 +18,7 @@ body {
 
   -webkit-perspective: 800px;
   -moz-perspective: 800px;
+  -ms-perspective: 800px;
   -o-perspective: 800px;
   perspective: 800px;
 }
@@ -46,6 +47,7 @@ body {
   width: 215px;
   -webkit-perspective: 800px;
   -moz-perspective: 800px;
+  -ms-perspective: 800px;
   -o-perspective: 800px;
   perspective: 800px;
 }
@@ -58,6 +60,7 @@ body {
 
   -webkit-transform-style: preserve-3d;
   -moz-transform-style: preserve-3d;
+  -ms-transform-style: preserve-3d;
   -o-transform-style: preserve-3d;
   transform-style: preserve-3d;
 }
@@ -68,6 +71,7 @@ body {
 
   -webkit-transition: -webkit-transform 0.1s, margin 0.1s;
   -moz-transition: -moz-transform 0.1s, margin 0.1s;
+  -ms-transition: -ms-transform 0.1s, margin 0.1s;
   -o-transition: -o-transform 0.1s, margin 0.1s;
   transition: transform 0.1s, margin 0.1s;
 }
@@ -75,6 +79,7 @@ body {
 #playground .card {
   -webkit-transition: -webkit-transform 0.5s;
   -moz-transition: -moz-transform 0.5s;
+  -ms-transition: -ms-transform 0.5s;
   -o-transition: -o-transform 0.5s;
   transition: transform 0.5s;
 }
@@ -92,11 +97,13 @@ body {
   background-color: #fff;
 
   -moz-box-sizing: border-box;
+  -ms-box-sizing: border-box;
   -o-box-sizing: border-box;
   box-sizing: border-box;
 
   -webkit-backface-visibility: hidden;
   -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
   -o-backface-visibility: hidden;
   backface-visibility: hidden;
 }
@@ -107,6 +114,7 @@ body {
 
   -webkit-transform: rotateY(0deg);
   -moz-transform: rotateY(0deg);
+  -ms-transform: rotateY(0deg);
   -o-transform: rotateY(0deg);
   transform: rotateY(0deg);
 }
@@ -117,6 +125,7 @@ body {
 
   -webkit-transform: rotateY(180deg);
   -moz-transform: rotateY(180deg);
+  -ms-transform: rotateY(180deg);
   -o-transform: rotateY(180deg);
   transform: rotateY(180deg);
 }
@@ -133,6 +142,7 @@ body {
 .card.blue {
   -webkit-transform: rotateY(0deg);
   -moz-transform: rotateY(0deg);
+  -ms-transform: rotateY(0deg);
   -o-transform: rotateY(0deg);
   transform: rotateY(0deg);
 }
@@ -140,6 +150,7 @@ body {
 .card.red {
   -webkit-transform: rotateY(180deg);
   -moz-transform: rotateY(180deg);
+  -ms-transform: rotateY(180deg);
   -o-transform: rotateY(180deg);
   transform: rotateY(180deg);
 }
@@ -147,6 +158,7 @@ body {
 #hand-1 .card {
   -webkit-transform: rotateY(10deg);
   -moz-transform: rotateY(10deg);
+  -ms-transform: rotateY(10deg);
   -o-transform: rotateY(10deg);
   transform: rotateY(10deg);
 }
@@ -154,6 +166,7 @@ body {
 #hand-2 .card {
   -webkit-transform: rotateY(170deg);
   -moz-transform: rotateY(170deg);
+  -ms-transform: rotateY(170deg);
   -o-transform: rotateY(170deg);
   transform: rotateY(170deg);
 }
@@ -177,6 +190,7 @@ body {
 
   -webkit-transform: rotateY(0deg);
   -moz-transform: rotateY(0deg);
+  -ms-transform: rotateY(0deg);
   -o-transform: rotateY(0deg);
   transform: rotateY(0deg);
 }
@@ -186,6 +200,7 @@ body {
 
   -webkit-transform: rotateY(180deg);
   -moz-transform: rotateY(180deg);
+  -ms-transform: rotateY(180deg);
   -o-transform: rotateY(180deg);
   transform: rotateY(180deg);
 }
@@ -244,6 +259,7 @@ body {
   float: left;
   -webkit-transition: -webkit-transform 0.5s;
   -moz-transition: -moz-transform 0.5s;
+  -ms-transition: -ms-transform 0.5s;
   -o-transition: -o-transform 0.5s;
   transition: transform 0.5s;
 }
@@ -254,6 +270,7 @@ body {
 .deck .card.selected {
   -webkit-transform: rotateY(180deg);
   -moz-transform: rotateY(180deg);
+  -ms-transform: rotateY(180deg);
   -o-transform: rotateY(180deg);
   transform: rotateY(180deg);
 }
