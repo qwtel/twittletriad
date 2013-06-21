@@ -116,6 +116,7 @@
 <template name="deck">
   <div class="row">
     <div class="col col-lg-12">
+      <button class="btn" id="load-cards">Load Cards</button>
       <div class="deck">
         {{#each cards}}
           {{> deckCard}}
@@ -126,7 +127,7 @@
 </template>
 
 <template name="card">
-  <div id="card-{{_id}}" class="card {{selected}} {{hover}}" style="{{style}}">
+  <div id="card-{{_id}}" class="card {{selected}}" style="{{style}}">
     <div class="face front" title="{{name}}" style="background-image:url('{{image}}')">
       {{> cardInner}}
     </div>

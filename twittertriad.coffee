@@ -28,7 +28,10 @@ if Meteor.isClient
   Meteor.startup ->
     Backbone.history.start pushState: true
 
-    Meteor.call "fetch"
+    user = Meteor.user()
+    if user? and user.profile?
+      unless user.profile.hasCards? 
+        Meteor.call "fetch"
 
     Games.find().observeChanges
       changed: (id, fields) ->
@@ -63,6 +66,10 @@ if Meteor.isClient
       owner: user._id
     ,
       sort: rank: -1
+
+  Template.deck.events
+    "click #load-cards": (e) ->
+      Meteor.call "fetch"
 
   Template.game.events
     "click #new-game": (e) ->
@@ -331,7 +338,7 @@ Meteor.methods
     Games.update game._id, game
 
   fetch: ->
-    if Meteor.isServer
+    if Meteor.isServer and Meteor.userId()?
       NUM_CARDS = 40
       #Cards.remove {}
       res = twitter.get "friends/ids.json", 
@@ -360,6 +367,8 @@ Meteor.methods
 
         s = _.first(ids, 100)
         ids = _.rest(ids, 100)
+
+        console.log "fetch"
 
         userId = Meteor.userId()
 
@@ -399,7 +408,6 @@ Meteor.methods
                 right: false
                 bottom: false
           else
-            console.log 'update'
             Cards.update exists._id,
               $set:
                 name: user.name
@@ -415,6 +423,10 @@ Meteor.methods
                   statuses: user.statuses_count
                   listed: user.listed_count
                   favourites: user.favourites_count
+
+          Meteor.users.update Meteor.userId(),
+            $set:
+              "profile.hasCards": true
 
   update: ->
     # only I can invoke cpu intensive ranking of cards
